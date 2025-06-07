@@ -38,7 +38,7 @@ There you can change the exchange and see the results in the system tray, there 
 If you do a right-click with the mouse you will see the new exchange you setup in the API.
 
 # Thank you!
-Thank you for your time, you are free to clone or fork this project!
+Thank you for your time, you are free to clone, fork or give a star in this project!
 You are free to give me any feeback!
 
 # Future update ideas
