@@ -33,7 +33,7 @@ pyinstaller --onefile --noconsole client.py
 # API and client usage
 The generated .exe files are in the projects directory > dist folder.
 Now you can run the server + client files (following this order).
-Access the exchange API in the browser http://localhost:8000/docs.
+Access the exchange API in the server browser http://localhost:8000/docs or in any device connected in the same network using the servers ip instead of localhost.
 There you can change the exchange and see the results in the system tray, there will be an icon of the client app.
 If you do a right-click with the mouse you will see the new exchange you setup in the API.
 
