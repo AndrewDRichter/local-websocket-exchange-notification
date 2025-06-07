@@ -22,7 +22,7 @@ pip install -r requirements.txt
 # Project setup
 Change the server ip in the client.py file to your servers ip
 ```python
-uri = "ws://192.168.1.140:8000/ws" # change to ws://YOUR_PC/SERVER_IP:8000/ws
+uri = f"ws://{config('SERVER_IP', cast=str)}:8000/ws"  # change to "ws://YOUR_SERVER_IP:8000/ws"
 ```
 Run the pyinstaller to generate the server and client .exe files
 ```bash
