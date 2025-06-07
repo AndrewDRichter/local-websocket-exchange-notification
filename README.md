@@ -1,4 +1,4 @@
-# Local Websocket Exchange Notificator
+# Local Websocket project: Exchange Notificator
 This is a project i made for the company i work. Basically, the exchange value used in daily financial operations was sent through whatsapp in a private group for the customer service team.
 It works fine for the size of the company and the operations we deal with. But when someone needed to take a look at the current exchange they had to open his whatsapp and take a look on that group.
 Most of the time it doesn't bother in any way, but depending on the situation, like, slow services or in a hurry, it could lead to a misinformation or, using the last exchange value and not the updated one.
