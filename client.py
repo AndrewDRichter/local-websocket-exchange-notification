@@ -4,6 +4,7 @@ import websockets
 from pystray import Icon, MenuItem, Menu
 from PIL import Image, ImageDraw
 import sys
+from decouple import config
 
 cambio_atual = "Aguardando..."  # Valor inicial do câmbio
 icone_global = None  # Referência ao ícone da bandeja
@@ -16,7 +17,7 @@ def criar_icone():
 
 async def receber_cambio():
     global cambio_atual
-    uri = "ws://192.168.1.140:8000/ws"  # Troque pelo IP real
+    uri = f"ws://{config('SERVER_IP', cast=str)}:8000/ws"  # Troque pelo IP real
     async with websockets.connect(uri) as websocket:
         while True:
             mensagem = await websocket.recv()
