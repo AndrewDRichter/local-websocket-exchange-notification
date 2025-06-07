@@ -40,3 +40,8 @@ If you do a right-click with the mouse you will see the new exchange you setup i
 # Thank you!
 Thank you for your time, you are free to clone or fork this project!
 You are free to give me any feeback!
+
+# Future update ideas
+-  Block new client execution if another is running.
+-  Create some front-end for server (and/or client)
+-  Create new features e.g. chat, wheater etc.
