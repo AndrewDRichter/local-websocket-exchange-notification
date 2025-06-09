@@ -43,7 +43,7 @@ def atualizar_menu():
             MenuItem(f"💱 Câmbio atual: {cambio_atual}", None, enabled=False),
             MenuItem(f"💱 Combustível atual: {combustivel_atual}", None, enabled=False),
             MenuItem(f"Logger: {log}", None, enabled=False),
-            MenuItem(f"Version: {client_version}", None, enabled=False),
+            # MenuItem(f"Version: {client_version}", None, enabled=False),
             MenuItem("Sair", lambda icon, item: sair(icon))
         )
         icone_global.update_menu()
