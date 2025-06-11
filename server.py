@@ -7,6 +7,7 @@ app = FastAPI()
 clientes = []
 cambio_atual = 0.0
 combustivel_atual = 0.0
+chat_messages = []
 
 app.add_middleware(
     CORSMiddleware,
@@ -41,6 +42,14 @@ async def atualizar_combustivel(valor: float):
     mensagem = "Combustível"
     await notificar_clientes(valor, mensagem)
     return {"mensagem": f"Combustível atualizado para {valor}"}
+
+@app.post("/atualizar-chat/{message}")
+async def atualizar_chat(message: str):
+    global chat_messages
+    chat_messages.append(message)
+    mensagem = "Chat"
+    await notificar_clientes(message, mensagem)
+    return {"mensagem": f"Chat: {message}"}
 
 @app.get("/get-cambio/")
 async def get_cambio():
