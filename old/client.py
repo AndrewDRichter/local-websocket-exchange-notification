@@ -4,7 +4,7 @@ import websockets
 from pystray import Icon, MenuItem, Menu
 from PIL import Image, ImageDraw
 import sys
-from config import get_config_value
+from old.config import get_config_value
 
 cambio_atual = "Aguardando..."  # Valor inicial do câmbio
 combustivel_atual = "Aguardando..."  # Valor inicial do combustível
