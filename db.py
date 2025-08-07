@@ -14,6 +14,12 @@ def get_last_soybean_cost(db: Session):
 def get_gas_prices(db: Session):
     return db.query(models.GasPrice).filter(models.GasPrice.active == True).all()
 
+def get_exchange_values(db: Session):
+    return db.query(models.ExchangeValue).filter(models.ExchangeValue.active == True).order_by(models.ExchangeValue.date_created).all()
+
+def get_auth_user(db: Session, username: str):
+    return db.query(models.AuthUser).filter(models.AuthUser.username==username).first()
+
 def create_gas_price(db:Session, price: int):
     db_gas_price = models.GasPrice(price=price)
     db.add(db_gas_price)
@@ -27,3 +33,10 @@ def create_exchange_values(db: Session, buy: int, sell: int):
     db.commit()
     db.refresh(db_exchange_values)
     return db_exchange_values
+
+def create_auth_user(db: Session, username: str, password: str):
+    db_auth_user = models.AuthUser(username=username, password=password)
+    db.add(db_auth_user)
+    db.commit()
+    db.refresh(db_auth_user)
+    return db_auth_user

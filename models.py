@@ -21,9 +21,9 @@ Base = declarative_base()
 class AuthUser(Base):
     __tablename__ = 'auth_user'
 
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True)
     username = Column(String, nullable=False)
-    password = Column(String)
+    password = Column(String, nullable=False)
     date_created = Column(DateTime, default=datetime.now)
     active = Column(Boolean, default=True)
 

@@ -3,10 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from db import get_gas_prices, create_gas_price, get_last_gas_price, get_last_exchange_value, create_exchange_values, get_last_soybean_cost
-from models import get_db
+from db import get_gas_prices, create_gas_price, get_last_gas_price, get_last_exchange_value, create_exchange_values, get_last_soybean_cost, create_auth_user, get_auth_user
+from models import get_db, get_hashed_password, verify_password
 from datetime import datetime
-
 
 app = FastAPI()
 clientes = []
@@ -40,6 +39,14 @@ class ExchangeValues(BaseModel):
     active: None | bool = True
 
 
+class AuthUser(BaseModel):
+    id: int | None
+    username: str
+    password: str
+    date_created: None | datetime = datetime.now()
+    active: None | bool = True
+
+
 @app.post("/new-gas-price")
 async def new_gas_price(gas_price: GasPrice, db: Session = Depends(get_db)):
     # if gas_price:
@@ -67,6 +74,24 @@ async def new_exchange_values(exchange_value: ExchangeValues, db: Session = Depe
         'active': data.active
     }
 
+@app.post("/new-auth-user")
+async def new_auth_user(auth_user: AuthUser, db: Session = Depends(get_db)):
+    user = get_auth_user(db, auth_user.username)
+    if user:
+        return {
+            'error': 'User with this username already exists!',
+        }
+    hashed_password = get_hashed_password(auth_user.password)
+    data = create_auth_user(db, auth_user.username, hashed_password)
+    db.commit()
+    print(data)
+    return {
+        'id': data.id,
+        'username': data.username,
+        'date': data.date_created,
+        'active': data.active
+    }
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -77,37 +102,22 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         clientes.remove(websocket)
 
-# @app.post("/atualizar-cambio/{valor}")
-# async def atualizar_cambio(valor: float):
-#     global cambio_atual
-#     cambio_atual = valor
-#     mensagem = "Câmbio"
-#     await notificar_clientes(valor, mensagem)
-#     return {"mensagem": f"Câmbio atualizado para {valor}"}
-
-# @app.post("/atualizar-combustivel/{valor}")
-# async def atualizar_combustivel(valor: float):
-#     global combustivel_atual
-#     combustivel_atual = valor
-#     mensagem = "Combustível"
-#     await notificar_clientes(valor, mensagem)
-#     return {"mensagem": f"Combustível atualizado para {valor}"}
-
-# @app.post("/atualizar-custo/{valor}")
-# async def atualizar_custo(valor: float):
-#     global custo_atual_atual
-#     custo_atual = valor
-#     mensagem = "Custo"
-#     await notificar_clientes(valor, mensagem)
-#     return {"mensagem": f"Custo atualizado para {valor}"}
-
-# @app.post("/atualizar-chat/{message}")
-# async def atualizar_chat(message: str):
-#     global chat_messages
-#     chat_messages.append(message)
-#     mensagem = "Chat"
-#     await notificar_clientes(message, mensagem)
-#     return {"mensagem": f"Chat: {message}"}
+@app.get("/signin/")
+async def sign_user_in(username: str, password: str, db:Session = Depends(get_db)):
+    user = get_auth_user(db, username)
+    if not user:
+        return{
+            'error': 'Wrong username',
+        }
+    correct_pass = verify_password(password, user.password)
+    if not correct_pass:
+        return{
+            'error': 'Wrong password'
+        }
+    print('User in!')
+    return {
+        'token': 'sometoken123',
+    }
 
 @app.get("/get-cambio/")
 async def get_cambio(db: Session = Depends(get_db)):
