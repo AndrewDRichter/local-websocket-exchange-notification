@@ -1,17 +1,7 @@
-from uuid import uuid4
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
-from passlib.context import CryptContext
-
-password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def get_hashed_password(password: str) -> str:
-    return password_context.hash(password)
-
-def verify_password(password: str, hashed_pass: str) -> bool:
-    return password_context.verify(password, hashed_pass)
 
 
 engine = create_engine('sqlite:///database.db', echo=True)
