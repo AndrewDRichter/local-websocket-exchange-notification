@@ -3,9 +3,42 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from db import create_gas_price, get_last_gas_price, get_last_exchange_value, create_exchange_values, get_last_soybean_cost, create_soybean_cost
+from db import create_gas_price, get_last_gas_price, get_last_exchange_value, create_exchange_values, get_last_soybean_cost, create_soybean_cost, get_auth_user
 from models import get_db
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+import jwt
+from passlib.context import CryptContext
+from decouple import config
+import models
+
+SECRET_KEY = config('API_SECRET_KEY', cast=str)
+ALGORITHM = config('JWT_ALGORITHM', cast=str)
+ACCESS_TOKEN_EXPIRE_MINUTES = config('ACCESS_TOKEN_EXPIRE_MINUTES', cast=int)
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def create_jwt_token(user: models.AuthUser, exp: int = ACCESS_TOKEN_EXPIRE_MINUTES) -> str:
+    payload = {
+        'user_id': user.id,
+        'username': user.username,
+        'exp': datetime.now(timezone.utc) + timedelta(minutes=exp)
+    }
+    token = jwt.encode(payload=payload, key=SECRET_KEY, algorithm=ALGORITHM)
+    return token
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def authenticate_user(db: Session, username: str, password: str):
+    user = get_auth_user(db=db, username=username)
+    if not user:
+        return False
+    if not verify_password(password, user.password):
+        return False
+    return user
 
 
 app = FastAPI()
@@ -25,13 +58,19 @@ app.add_middleware(
 
 def verify_token(req: Request):
     token = req.headers.get('Authorization', None)
-    print(token)
-    token_valid = token
-    # token validation logic
-    if not token_valid:
+    if token is None:
         raise HTTPException(
             status_code=401,
-            detail="Unauthorized"
+            detail='Unauthorized'
+        )
+    token = token.split()[1]
+    decode_token = jwt.decode(token, key=SECRET_KEY, algorithms=ALGORITHM)
+    exp = decode_token.get('exp', 0)
+    now = datetime.now(timezone.utc).timestamp()
+    if now > exp:
+        raise HTTPException(
+            status_code=401,
+            detail='Unauthorized'
         )
     return True
 
@@ -59,8 +98,13 @@ class SoybeanCost(BaseModel):
     active: None | bool = True
 
 
+class AuthUser(BaseModel):
+    username: str
+    password: str
+
+
 @app.post("/new-gas-price")
-async def new_gas_price(gas_price: GasPrice, db: Session = Depends(get_db)):
+async def new_gas_price(gas_price: GasPrice, db: Session = Depends(get_db), authorized: bool = Depends(verify_token)):
     data = create_gas_price(db, gas_price.price)
     # db.commit()
     print(data)
@@ -74,7 +118,7 @@ async def new_gas_price(gas_price: GasPrice, db: Session = Depends(get_db)):
     }
 
 @app.post("/new-exchange-values")
-async def new_exchange_values(exchange_value: ExchangeValues, db: Session = Depends(get_db)):
+async def new_exchange_values(exchange_value: ExchangeValues, db: Session = Depends(get_db), authorized: bool = Depends(verify_token)):
     data = create_exchange_values(db, exchange_value.buy, exchange_value.sell)
     # db.commit()
     print(data)
@@ -89,7 +133,7 @@ async def new_exchange_values(exchange_value: ExchangeValues, db: Session = Depe
     }
 
 @app.post("/new-soybean-cost")
-async def new_soybean_cost(soybean_cost: SoybeanCost, db: Session = Depends(get_db)):
+async def new_soybean_cost(soybean_cost: SoybeanCost, db: Session = Depends(get_db), authorized: bool = Depends(verify_token)):
     data = create_soybean_cost(db, soybean_cost.cost, soybean_cost.ref_month)
     # db.commit()
     print(data)
@@ -104,7 +148,7 @@ async def new_soybean_cost(soybean_cost: SoybeanCost, db: Session = Depends(get_
     }
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, authorized: bool = Depends(verify_token)):
     await websocket.accept()
     clientes.append(websocket)
     try:
@@ -113,18 +157,15 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         clientes.remove(websocket)
 
-# @app.get("/signin/")
-# async def sign_user_in(username: str, password: str, db:Session = Depends(get_db)):
-#     user = get_auth_user(db, username)
-#     if not user:
-#         return False
-#     correct_pass = verify_password(password, user.password)
-#     if not correct_pass:
-#         return False
-#     print('User in!')
-#     return {
-#         'token': 'sometoken123',
-#     }
+@app.post("/signin/")
+async def sign_user_in(user: AuthUser, db:Session = Depends(get_db)):
+    user = authenticate_user(db, username=user.username, password=user.password)
+    if not user:
+        raise HTTPException(status_code=401, detail='Unauthorized')
+    token = create_jwt_token(user=user)
+    return {
+        'token': token,
+    }
 
 @app.get("/get-exchange-values/")
 async def get_exchange_values(db: Session = Depends(get_db), authorized: bool = Depends(verify_token)):
@@ -142,7 +183,7 @@ async def get_exchange_values(db: Session = Depends(get_db), authorized: bool = 
     }
 
 @app.get("/get-gas-price/")
-async def get_gas_price(db: Session = Depends(get_db)):
+async def get_gas_price(db: Session = Depends(get_db), authorized: bool = Depends(verify_token)):
     gas_price = get_last_gas_price(db)
     if not gas_price:
         return {
@@ -156,7 +197,7 @@ async def get_gas_price(db: Session = Depends(get_db)):
     }
 
 @app.get("/get-soybean-cost/")
-async def get_soybean_cost(db: Session = Depends(get_db)):
+async def get_soybean_cost(db: Session = Depends(get_db), authorized: bool = Depends(verify_token)):
     soybean_cost = get_last_soybean_cost(db)
     if not soybean_cost:
         return {

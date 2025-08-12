@@ -18,7 +18,7 @@ def get_exchange_values(db: Session):
     return db.query(models.ExchangeValue).filter(models.ExchangeValue.active == True).order_by(models.ExchangeValue.date_created).all()
 
 def get_auth_user(db: Session, username: str):
-    return db.query(models.CreateUser).filter(models.CreateUser.username==username).first()
+    return db.query(models.AuthUser).filter(models.AuthUser.username==username).first()
 
 def create_gas_price(db:Session, price: int):
     db_gas_price = models.GasPrice(price=price)
@@ -42,7 +42,7 @@ def create_soybean_cost(db: Session, cost: int, ref_month: int):
     return db_soybean_cost
 
 def create_auth_user(db: Session, username: str, password: str):
-    db_auth_user = models.CreateUser(username=username, password=password)
+    db_auth_user = models.AuthUser(username=username, password=password)
     db.add(db_auth_user)
     db.commit()
     db.refresh(db_auth_user)
