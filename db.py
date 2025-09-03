@@ -3,19 +3,22 @@ from datetime import datetime, timedelta
 import models
 
 def get_last_gas_price(db: Session):
-    return (db.query(models.GasPrice).order_by(models.GasPrice.date_created.desc()).first())
+    return (db.query(models.GasPrice).filter(models.GasPrice.active==True).order_by(models.GasPrice.date_created.desc()).first())
 
 def get_last_exchange_value(db: Session):
-    return (db.query(models.ExchangeValue).order_by(models.ExchangeValue.date_created.desc()).first())
+    return (db.query(models.ExchangeValue).filter(models.ExchangeValue.active==True).order_by(models.ExchangeValue.date_created.desc()).first())
 
 def get_last_soybean_cost(db: Session):
-    return (db.query(models.SoybeanCost).order_by(models.SoybeanCost.date_created.desc()).first())
+    return (db.query(models.SoybeanCost).filter(models.SoybeanCost.active==True).order_by(models.SoybeanCost.date_created.desc()).first())
 
 def get_gas_prices(db: Session):
     return db.query(models.GasPrice).filter(models.GasPrice.active == True).all()
 
 def get_exchange_values(db: Session):
     return db.query(models.ExchangeValue).filter(models.ExchangeValue.active == True).order_by(models.ExchangeValue.date_created).all()
+
+def get_soybean_cost(db: Session):
+    return db.query(models.SoybeanCost).filter(models.SoybeanCost.active == True).order_by(models.SoybeanCost.date_created).all()
 
 def get_auth_user(db: Session, username: str):
     return db.query(models.AuthUser).filter(models.AuthUser.username==username).first()
@@ -41,8 +44,8 @@ def create_soybean_cost(db: Session, cost: int, ref_month: int):
     db.refresh(db_soybean_cost)
     return db_soybean_cost
 
-def create_auth_user(db: Session, username: str, password: str):
-    db_auth_user = models.AuthUser(username=username, password=password)
+def create_auth_user(db: Session, username: str, password: str, read_only: bool):
+    db_auth_user = models.AuthUser(username=username, password=password, read_only=read_only)
     db.add(db_auth_user)
     db.commit()
     db.refresh(db_auth_user)

@@ -14,6 +14,7 @@ class AuthUser(Base):
     id = Column(Integer, primary_key=True)
     username = Column(String, nullable=False)
     password = Column(String, nullable=False)
+    read_only = Column(Boolean, nullable=False)
     date_created = Column(DateTime, default=datetime.now)
     active = Column(Boolean, default=True)
 
