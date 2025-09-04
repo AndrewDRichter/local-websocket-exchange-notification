@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, Request, Header
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, Request, Header, WebSocketException, status
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from pydantic import BaseModel
@@ -11,6 +11,7 @@ from jwt.exceptions import DecodeError, ExpiredSignatureError
 from passlib.context import CryptContext
 from decouple import config
 import models
+from typing import List
 
 SECRET_KEY = config('API_SECRET_KEY', cast=str)
 ALGORITHM = config('JWT_ALGORITHM', cast=str)
@@ -44,7 +45,7 @@ def authenticate_user(db: Session, username: str, password: str):
 
 
 app = FastAPI()
-clientes = []
+clientes: List[WebSocket] = []
 # cambio_atual = 0.0
 # combustivel_atual = 0.0
 # custo_atual = 0.0
@@ -169,7 +170,7 @@ async def new_exchange_values(exchange_value: CreateExchangeValues, db: Session 
         )
     data: ExchangeValues = create_exchange_values(db, exchange_value.buy, exchange_value.sell)
     value = f'{data.buy}/{data.sell}'
-    notificar_clientes(value=value, message='Cambio')
+    await notificar_clientes(value=value, message='Cambio')
     return {
         'id': data.id,
         'buy': data.buy,
@@ -203,7 +204,7 @@ async def new_soybean_cost(soybean_cost: CreateSoybeanCost, db: Session = Depend
         )
     data: SoybeanCost = create_soybean_cost(db, soybean_cost.cost, soybean_cost.ref_month)
     value = f'{data.cost}/{data.ref_month}'
-    notificar_clientes(value=value, message='Costo')
+    await notificar_clientes(value=value, message='Costo')
     return {
         'id': data.id,
         'cost': data.cost,
@@ -252,9 +253,21 @@ async def new_auth_user(user: CreateAuthUser, db: Session = Depends(get_db), aut
     }
 
 
+def is_authorized_ws(bearer: str):
+    token = bearer.split()[1]
+    if not token:
+        return False
+    decode_token = jwt.decode(token, key=SECRET_KEY, algorithms=ALGORITHM)
+    print(decode_token)
+
+
 # WEBSOCKET CONFIG
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, authorized: object = Depends(verify_token)):
+async def websocket_endpoint(websocket: WebSocket):
+    bearer = websocket.headers.get('authorization', None)
+    if not bearer:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+    user_data = is_authorized_ws(bearer)
     await websocket.accept()
     clientes.append(websocket)
     try:
